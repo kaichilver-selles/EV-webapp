@@ -215,48 +215,46 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
         >
-          <Card>
-            <CardContent className="pt-6">
+          <Card className="h-full min-h-[500px] flex flex-col">
+            <CardContent className="pt-6 flex-grow flex flex-col">
               <h3 className="text-lg font-medium mb-4">Charging Costs</h3>
               <motion.div 
-                className="space-y-4"
+                className="space-y-4 flex-grow"
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Common Scenarios</h4>
-                    {chargingScenarios.slice(0, 4).map((scenario) => (
-                      <motion.div 
-                        key={scenario.id} 
-                        className="flex justify-between items-center border-b pb-2 mb-2"
-                        variants={itemVariants}
-                      >
-                        <span>{scenario.name}</span>
-                        <AnimatedPrice 
-                          value={calculateChargeCost(scenario.percentage)}
-                          animate={animatePrices}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Additional Scenarios</h4>
-                    {chargingScenarios.slice(4).map((scenario) => (
-                      <motion.div 
-                        key={scenario.id} 
-                        className="flex justify-between items-center border-b pb-2 mb-2"
-                        variants={itemVariants}
-                      >
-                        <span>{scenario.name}</span>
-                        <AnimatedPrice 
-                          value={calculateChargeCost(scenario.percentage)}
-                          animate={animatePrices}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Common Scenarios</h4>
+                  {chargingScenarios.slice(0, 4).map((scenario) => (
+                    <motion.div 
+                      key={scenario.id} 
+                      className="flex justify-between items-center border-b pb-2 mb-2"
+                      variants={itemVariants}
+                    >
+                      <span>{scenario.name}</span>
+                      <AnimatedPrice 
+                        value={calculateChargeCost(scenario.percentage)}
+                        animate={animatePrices}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Additional Scenarios</h4>
+                  {chargingScenarios.slice(4).map((scenario) => (
+                    <motion.div 
+                      key={scenario.id} 
+                      className="flex justify-between items-center border-b pb-2 mb-2"
+                      variants={itemVariants}
+                    >
+                      <span>{scenario.name}</span>
+                      <AnimatedPrice 
+                        value={calculateChargeCost(scenario.percentage)}
+                        animate={animatePrices}
+                      />
+                    </motion.div>
+                  ))}
                 </div>
               </motion.div>
               <div className="mt-4 text-sm text-muted-foreground">
@@ -271,12 +269,12 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
         >
-          <Card>
-            <CardContent className="pt-6">
+          <Card className="h-full min-h-[500px] flex flex-col">
+            <CardContent className="pt-6 flex-grow">
               <Tabs defaultValue="typical">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">Charging Times</h3>
-                  <TabsList className="grid grid-cols-4">
+                  <TabsList className="grid grid-cols-7 max-w-3xl">
                     <TabsTrigger value="typical" className="text-xs px-1">
                       20-80%
                     </TabsTrigger>
@@ -288,6 +286,15 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
                     </TabsTrigger>
                     <TabsTrigger value="journey" className="text-xs px-1">
                       50-100%
+                    </TabsTrigger>
+                    <TabsTrigger value="emergency" className="text-xs px-1">
+                      5-25%
+                    </TabsTrigger>
+                    <TabsTrigger value="weekend" className="text-xs px-1">
+                      30-90%
+                    </TabsTrigger>
+                    <TabsTrigger value="commute" className="text-xs px-1">
+                      40-70%
                     </TabsTrigger>
                   </TabsList>
                 </div>
