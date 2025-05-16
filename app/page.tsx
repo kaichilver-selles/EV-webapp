@@ -204,6 +204,12 @@ export default function Home() {
                 <EVChargingEstimates
                   tariff={tariffs.find((t) => t.id === preferences.selectedTariffForView) || tariffs[0]}
                   usageAssumptions={usageAssumptions}
+                  onUpdateOffPeakPercentage={(percentage) => {
+                    setUsageAssumptions({
+                      ...usageAssumptions,
+                      evOffPeakPercentage: percentage
+                    });
+                  }}
                 />
               </CardContent>
             </Card>

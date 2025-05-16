@@ -6,10 +6,12 @@ import type { Tariff, UsageAssumptions } from "@/lib/types"
 import { formatCurrency, formatTime } from "@/lib/utils"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
+import { Slider } from "@/components/ui/slider"
 
 interface EVChargingEstimatesProps {
   tariff: Tariff
   usageAssumptions: UsageAssumptions
+  onUpdateOffPeakPercentage?: (percentage: number) => void
 }
 
 // Vauxhall Mokka-e has a 50 kWh battery
@@ -23,8 +25,6 @@ const chargingScenarios = [
   { id: "journey", name: "50% → 100% (long journey prep)", percentage: 0.5 },
   // New charging cost examples
   { id: "emergency", name: "5% → 25% (emergency top-up)", percentage: 0.2 },
-  { id: "weekend", name: "30% → 90% (weekend trip)", percentage: 0.6 },
-  { id: "commute", name: "40% → 70% (daily commute)", percentage: 0.3 },
 ]
 
 // Define charging powers
@@ -111,7 +111,7 @@ const AnimatedPrice = ({ value, animate }: AnimatedPriceProps) => {
   
   return (
     <motion.span 
-      className="font-medium font-mono"
+      className="font-bold font-mono"
       variants={priceVariants}
       initial="hidden"
       animate={animate ? "show" : "hidden"}
@@ -121,9 +121,20 @@ const AnimatedPrice = ({ value, animate }: AnimatedPriceProps) => {
   );
 };
 
-export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChargingEstimatesProps) {
+export default function EVChargingEstimates({ 
+  tariff, 
+  usageAssumptions,
+  onUpdateOffPeakPercentage
+}: EVChargingEstimatesProps) {
   // Animation trigger for price changes
   const [animatePrices, setAnimatePrices] = useState(false);
+  // Local copy of the off-peak percentage for immediate UI updates
+  const [localOffPeakPercentage, setLocalOffPeakPercentage] = useState(usageAssumptions.evOffPeakPercentage);
+  
+  // Update local state when props change
+  useEffect(() => {
+    setLocalOffPeakPercentage(usageAssumptions.evOffPeakPercentage);
+  }, [usageAssumptions.evOffPeakPercentage]);
   
   // Use EV rate if available, otherwise use standard unit rate
   const rateForCharging = tariff.evRate !== null ? tariff.evRate : tariff.unitRate
@@ -136,12 +147,28 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
       setAnimatePrices(true);
     }, 100);
     return () => clearTimeout(timer);
-  }, [tariff.id, rateForCharging]);
+  }, [tariff.id, rateForCharging, localOffPeakPercentage]);
 
   const calculateChargeCost = (percentage: number) => {
     const kWh = BATTERY_CAPACITY * percentage
-    const costInPence = kWh * rateForCharging
-    return costInPence / 100 // Convert to pounds
+    
+    // If the tariff has an EV rate and we have an off-peak percentage
+    if (tariff.evRate !== null && tariff.evRate !== tariff.unitRate) {
+      // Split charging based on off-peak percentage
+      const offPeakKWh = kWh * (localOffPeakPercentage / 100)
+      const peakKWh = kWh - offPeakKWh
+      
+      // Calculate costs using appropriate rates
+      const offPeakCost = offPeakKWh * tariff.evRate
+      const peakCost = peakKWh * tariff.unitRate
+      
+      const totalCostInPence = offPeakCost + peakCost
+      return totalCostInPence / 100 // Convert to pounds
+    } else {
+      // Standard calculation for tariffs without special EV rates
+      const costInPence = kWh * rateForCharging
+      return costInPence / 100 // Convert to pounds
+    }
   }
 
   const calculateChargingTime = (percentage: number, powerKW: number) => {
@@ -188,24 +215,51 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
     }
   }
 
+  // Handle slider change
+  const handleSliderChange = (values: number[]) => {
+    const newPercentage = values[0];
+    setLocalOffPeakPercentage(newPercentage);
+    
+    // Update parent component if callback provided
+    if (onUpdateOffPeakPercentage) {
+      onUpdateOffPeakPercentage(newPercentage);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {tariff.evRate !== null && tariff.offPeakStart && tariff.offPeakEnd && (
         <motion.div 
-          className="bg-muted p-3 rounded-md"
+          className="bg-muted p-4 rounded-md"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-3">
             <Badge variant="outline">Off-Peak Hours</Badge>
             <span>
               {formatTime(tariff.offPeakStart)} - {formatTime(tariff.offPeakEnd)}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            {usageAssumptions.evOffPeakPercentage}% of EV charging is assumed to be during off-peak hours.
-          </p>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">EV Off-Peak Charging</span>
+              <span className="text-sm font-medium">{localOffPeakPercentage}%</span>
+            </div>
+            <Slider
+              min={0}
+              max={100}
+              step={5}
+              value={[localOffPeakPercentage]}
+              onValueChange={handleSliderChange}
+              className="my-2"
+            />
+            <div className="flex justify-between">
+              <span className="text-xs text-muted-foreground">0% (All Peak)</span>
+              <span className="text-xs text-muted-foreground">100% (All Off-Peak)</span>
+            </div>
+          </div>
         </motion.div>
       )}
 
@@ -215,7 +269,7 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
         >
-          <Card className="h-full min-h-[500px] flex flex-col">
+          <Card className="h-full min-h-[450px] flex flex-col">
             <CardContent className="pt-6 flex-grow flex flex-col">
               <h3 className="text-lg font-medium mb-4">Charging Costs</h3>
               <motion.div 
@@ -258,7 +312,15 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
                 </div>
               </motion.div>
               <div className="mt-4 text-sm text-muted-foreground">
-                Using {tariff.evRate !== null ? "special EV rate" : "standard rate"} of {rateForCharging}p/kWh
+                {tariff.evRate !== null && tariff.evRate !== tariff.unitRate ? (
+                  <>
+                    Using blended rate: {localOffPeakPercentage}% at {tariff.evRate}p/kWh (off-peak) and {100 - localOffPeakPercentage}% at {tariff.unitRate}p/kWh (peak)
+                  </>
+                ) : (
+                  <>
+                    Using {tariff.evRate !== null ? "special EV rate" : "standard rate"} of {rateForCharging}p/kWh
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -269,12 +331,12 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
         >
-          <Card className="h-full min-h-[500px] flex flex-col">
-            <CardContent className="pt-6 flex-grow">
+          <Card className="h-full min-h-[450px] flex flex-col">
+            <CardContent className="pt-6 flex-grow flex flex-col">
               <Tabs defaultValue="typical">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">Charging Times</h3>
-                  <TabsList className="grid grid-cols-7 max-w-3xl">
+                  <TabsList className="grid grid-cols-5 max-w-3xl">
                     <TabsTrigger value="typical" className="text-xs px-1">
                       20-80%
                     </TabsTrigger>
@@ -289,12 +351,6 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
                     </TabsTrigger>
                     <TabsTrigger value="emergency" className="text-xs px-1">
                       5-25%
-                    </TabsTrigger>
-                    <TabsTrigger value="weekend" className="text-xs px-1">
-                      30-90%
-                    </TabsTrigger>
-                    <TabsTrigger value="commute" className="text-xs px-1">
-                      40-70%
                     </TabsTrigger>
                   </TabsList>
                 </div>

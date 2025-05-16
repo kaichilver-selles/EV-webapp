@@ -72,7 +72,7 @@ export const defaultTariffs: Tariff[] = [
   },
   {
     id: "2",
-    name: "Fuse Off-Peak Fixed (12m) v2 – Ideal Case",
+    name: "Fuse Off-Peak Fixed (12m) v2",
     unitRate: 27.58,
     evRate: 12.76,
     standingCharge: 48.13,
@@ -80,22 +80,10 @@ export const defaultTariffs: Tariff[] = [
     fixedTerm: "12 months",
     offPeakStart: "01:30",
     offPeakEnd: "08:30",
-    notes: "EV charged between 01:30–08:30",
+    notes: "Off-peak EV charging between 01:30–08:30",
   },
   {
     id: "3",
-    name: "Fuse Off-Peak Fixed (12m) v2 – Worst Case",
-    unitRate: 27.58,
-    evRate: 27.58, // Same as peak rate for worst case
-    standingCharge: 48.13,
-    tariffType: "Fixed",
-    fixedTerm: "12 months",
-    offPeakStart: "01:30",
-    offPeakEnd: "08:30",
-    notes: "EV charged outside off-peak hours",
-  },
-  {
-    id: "4",
     name: "Fuse Single Rate Variable",
     unitRate: 24.61,
     evRate: null,
@@ -104,7 +92,7 @@ export const defaultTariffs: Tariff[] = [
     notes: "No peak/off-peak split",
   },
   {
-    id: "5",
+    id: "4",
     name: "So Chestnut One Year",
     unitRate: 21.97,
     evRate: null,
