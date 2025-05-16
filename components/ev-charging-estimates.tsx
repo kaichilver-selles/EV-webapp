@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Tariff, UsageAssumptions } from "@/lib/types"
 import { formatCurrency, formatTime } from "@/lib/utils"
+import { motion } from "framer-motion"
 
 interface EVChargingEstimatesProps {
   tariff: Tariff
@@ -29,6 +30,33 @@ const chargingPowers = [
   { power: 50, name: "50 kW (Rapid Charger)" },
   { power: 150, name: "150 kW (Ultra-Rapid Charger)" },
 ]
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+}
+
+const barVariants = {
+  hidden: { width: 0 },
+  show: (duration: number) => ({
+    width: "100%",
+    transition: { 
+      duration: Math.min(3, duration / 5), // Cap animation at 3 seconds
+      ease: "easeInOut"
+    }
+  })
+}
 
 export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChargingEstimatesProps) {
   // Use EV rate if available, otherwise use standard unit rate
@@ -57,10 +85,21 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
     }
   }
 
+  // Calculate raw charging time in hours for animation duration
+  const getChargingTimeInHours = (percentage: number, powerKW: number) => {
+    const kWh = BATTERY_CAPACITY * percentage
+    return kWh / powerKW
+  }
+
   return (
     <div className="space-y-6">
       {tariff.evRate !== null && tariff.offPeakStart && tariff.offPeakEnd && (
-        <div className="bg-muted p-3 rounded-md">
+        <motion.div 
+          className="bg-muted p-3 rounded-md"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="flex items-center gap-2">
             <Badge variant="outline">Off-Peak Hours</Badge>
             <span>
@@ -70,73 +109,122 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
           <p className="text-sm text-muted-foreground mt-2">
             {usageAssumptions.evOffPeakPercentage}% of EV charging is assumed to be during off-peak hours.
           </p>
-        </div>
+        </motion.div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-medium mb-4">Charging Costs</h3>
-            <div className="space-y-4">
-              {chargingScenarios.map((scenario) => (
-                <div key={scenario.id} className="flex justify-between items-center border-b pb-2">
-                  <span>{scenario.name}</span>
-                  <span className="font-medium font-mono">
-                    {formatCurrency(calculateChargeCost(scenario.percentage))}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 text-sm text-muted-foreground">
-              Using {tariff.evRate !== null ? "special EV rate" : "standard rate"} of {rateForCharging}p/kWh
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <Tabs defaultValue="typical">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Charging Times</h3>
-                <TabsList className="grid grid-cols-4">
-                  <TabsTrigger value="typical" className="text-xs px-1">
-                    20-80%
-                  </TabsTrigger>
-                  <TabsTrigger value="full" className="text-xs px-1">
-                    0-100%
-                  </TabsTrigger>
-                  <TabsTrigger value="topup" className="text-xs px-1">
-                    10-50%
-                  </TabsTrigger>
-                  <TabsTrigger value="journey" className="text-xs px-1">
-                    50-100%
-                  </TabsTrigger>
-                </TabsList>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-medium mb-4">Charging Costs</h3>
+              <motion.div 
+                className="space-y-4"
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+              >
+                {chargingScenarios.map((scenario) => (
+                  <motion.div 
+                    key={scenario.id} 
+                    className="flex justify-between items-center border-b pb-2"
+                    variants={itemVariants}
+                  >
+                    <span>{scenario.name}</span>
+                    <span className="font-medium font-mono">
+                      {formatCurrency(calculateChargeCost(scenario.percentage))}
+                    </span>
+                  </motion.div>
+                ))}
+              </motion.div>
+              <div className="mt-4 text-sm text-muted-foreground">
+                Using {tariff.evRate !== null ? "special EV rate" : "standard rate"} of {rateForCharging}p/kWh
               </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-              {chargingScenarios.map((scenario) => (
-                <TabsContent key={scenario.id} value={scenario.id} className="mt-0">
-                  <div className="space-y-4">
-                    {chargingPowers.map((power) => (
-                      <div key={power.name} className="flex justify-between items-center border-b pb-2">
-                        <span>{power.name}</span>
-                        <span className="font-medium font-mono">
-                          {calculateChargingTime(scenario.percentage, power.power)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    {scenario.name} ({Math.round(BATTERY_CAPACITY * scenario.percentage)} kWh)
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card>
+            <CardContent className="pt-6">
+              <Tabs defaultValue="typical">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">Charging Times</h3>
+                  <TabsList className="grid grid-cols-4">
+                    <TabsTrigger value="typical" className="text-xs px-1">
+                      20-80%
+                    </TabsTrigger>
+                    <TabsTrigger value="full" className="text-xs px-1">
+                      0-100%
+                    </TabsTrigger>
+                    <TabsTrigger value="topup" className="text-xs px-1">
+                      10-50%
+                    </TabsTrigger>
+                    <TabsTrigger value="journey" className="text-xs px-1">
+                      50-100%
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                {chargingScenarios.map((scenario) => (
+                  <TabsContent key={scenario.id} value={scenario.id} className="mt-0">
+                    <motion.div 
+                      className="space-y-4"
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="show"
+                    >
+                      {chargingPowers.map((power) => {
+                        const chargingTime = getChargingTimeInHours(scenario.percentage, power.power);
+                        return (
+                          <motion.div 
+                            key={power.name} 
+                            className="border-b pb-2"
+                            variants={itemVariants}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span>{power.name}</span>
+                              <span className="font-medium font-mono">
+                                {calculateChargingTime(scenario.percentage, power.power)}
+                              </span>
+                            </div>
+                            <div className="mt-1 h-1 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                              <motion.div
+                                className="h-full bg-primary rounded-full"
+                                custom={chargingTime}
+                                variants={barVariants}
+                                initial="hidden"
+                                animate="show"
+                              />
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </motion.div>
+                    <div className="mt-4 text-sm text-muted-foreground">
+                      {scenario.name} ({Math.round(BATTERY_CAPACITY * scenario.percentage)} kWh)
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
-      <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg">
+      <motion.div
+        className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
         <h3 className="text-lg font-medium mb-2">Vehicle Information</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
           <div className="text-sm">Model: 2021 Vauxhall Mokka-e</div>
@@ -144,7 +232,7 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
           <div className="text-sm">Efficiency: ~3.6 miles/kWh</div>
           <div className="text-sm">Range: ~201 miles (WLTP)</div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
