@@ -94,22 +94,23 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
   }
 
   // Scale charging times for more visible differences in the animation
-  // This preserves relative differences better, especially for slower charging methods
-  const scaleChargingTimeForAnimation = (hours: number) => {
-    // For slower charging methods (3.6kW and 7.4kW), preserve the relative differences more faithfully
-    // For faster methods, use a min threshold to ensure animation is visible
-    
-    // Determine if this is one of the slower charging methods
-    const isSlowerCharging = hours > 0.5; // Typically 3.6kW and 7.4kW will be above this threshold
-    
-    if (isSlowerCharging) {
-      // For slower charging, use a more linear scale but cap at 5 seconds
-      // This preserves the relative differences better (e.g., 3.6kW vs 7.4kW)
-      return Math.min(5, 1.5 + hours * 0.8);
-    } else {
-      // For faster charging methods, use a logarithmic scale with minimum threshold
-      const logScale = 1.5 + Math.log10(hours * 100 + 1) / Math.log10(1000) * 3.5;
-      return Math.min(5, logScale);
+  const scaleChargingTimeForAnimation = (hours: number, powerKW: number) => {
+    // Map specific charging powers to animation durations
+    // This ensures a clear visual difference between different charging speeds
+    switch (powerKW) {
+      case 3.6: // Slow charger
+        return 4.8; // Longest animation time
+      case 7.4: // Home wallbox
+        return 3.2; // Noticeably faster than slow charger
+      case 22: // Fast charger
+        return 2.0; // Significantly faster than home charging
+      case 50: // Rapid charger
+        return 1.6; // Quick but still visible
+      case 150: // Ultra-rapid charger
+        return 1.2; // Fastest animation
+      default:
+        // Fallback for any other power values
+        return Math.min(5, Math.max(1.2, 5 - Math.log10(powerKW) * 2));
     }
   }
 
@@ -220,7 +221,7 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
                             <div className="mt-1 h-1 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                               <motion.div
                                 className="h-full bg-primary rounded-full"
-                                custom={scaleChargingTimeForAnimation(chargingTime)}
+                                custom={scaleChargingTimeForAnimation(chargingTime, power.power)}
                                 variants={barVariants}
                                 initial="hidden"
                                 animate="show"
