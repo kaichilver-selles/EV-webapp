@@ -65,16 +65,13 @@ const barVariants = {
   })
 }
 
-// Animation variants for price numbers
+// Animation variants for price numbers - removed scaling effect
 const priceVariants = {
-  hidden: { opacity: 0, scale: 0.8 },
+  hidden: { opacity: 0 },
   show: { 
-    opacity: 1, 
-    scale: 1,
+    opacity: 1,
     transition: { 
-      type: "spring", 
-      stiffness: 100, 
-      damping: 10 
+      duration: 0.3
     }
   }
 }
