@@ -51,10 +51,10 @@ const itemVariants = {
 
 const barVariants = {
   hidden: { width: 0 },
-  show: (duration: number) => ({
+  show: (animationDuration: number) => ({
     width: "100%",
     transition: { 
-      duration: Math.min(5, duration / 3),
+      duration: animationDuration,
       ease: "easeInOut"
     }
   })
@@ -91,6 +91,21 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
   const getChargingTimeInHours = (percentage: number, powerKW: number) => {
     const kWh = BATTERY_CAPACITY * percentage
     return kWh / powerKW
+  }
+
+  // Scale charging times for more visible differences in the animation
+  // This applies a logarithmic scale to make fast charging still visibly different from ultra-fast
+  const scaleChargingTimeForAnimation = (hours: number) => {
+    // Apply logarithmic scaling to emphasize differences between shorter times
+    // log10(hours * 100 + 1) provides a nice curve that makes small differences more visible
+    // For example: 
+    // - 0.1 hrs (~6 mins) becomes ~2 seconds animation
+    // - 0.3 hrs (~18 mins) becomes ~2.5 seconds animation
+    // - 1 hr becomes ~3 seconds animation
+    // - 3 hrs becomes ~3.5 seconds animation
+    // - 10 hrs becomes ~4 seconds animation
+    const logScale = Math.log10(hours * 100 + 1) / Math.log10(1000) * 5;
+    return Math.max(1.2, Math.min(5, logScale));
   }
 
   return (
@@ -200,7 +215,7 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
                             <div className="mt-1 h-1 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                               <motion.div
                                 className="h-full bg-primary rounded-full"
-                                custom={chargingTime}
+                                custom={scaleChargingTimeForAnimation(chargingTime)}
                                 variants={barVariants}
                                 initial="hidden"
                                 animate="show"
