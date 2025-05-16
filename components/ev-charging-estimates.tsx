@@ -94,18 +94,23 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
   }
 
   // Scale charging times for more visible differences in the animation
-  // This applies a logarithmic scale to make fast charging still visibly different from ultra-fast
+  // This preserves relative differences better, especially for slower charging methods
   const scaleChargingTimeForAnimation = (hours: number) => {
-    // Apply logarithmic scaling to emphasize differences between shorter times
-    // log10(hours * 100 + 1) provides a nice curve that makes small differences more visible
-    // For example: 
-    // - 0.1 hrs (~6 mins) becomes ~2 seconds animation
-    // - 0.3 hrs (~18 mins) becomes ~2.5 seconds animation
-    // - 1 hr becomes ~3 seconds animation
-    // - 3 hrs becomes ~3.5 seconds animation
-    // - 10 hrs becomes ~4 seconds animation
-    const logScale = Math.log10(hours * 100 + 1) / Math.log10(1000) * 5;
-    return Math.max(1.2, Math.min(5, logScale));
+    // For slower charging methods (3.6kW and 7.4kW), preserve the relative differences more faithfully
+    // For faster methods, use a min threshold to ensure animation is visible
+    
+    // Determine if this is one of the slower charging methods
+    const isSlowerCharging = hours > 0.5; // Typically 3.6kW and 7.4kW will be above this threshold
+    
+    if (isSlowerCharging) {
+      // For slower charging, use a more linear scale but cap at 5 seconds
+      // This preserves the relative differences better (e.g., 3.6kW vs 7.4kW)
+      return Math.min(5, 1.5 + hours * 0.8);
+    } else {
+      // For faster charging methods, use a logarithmic scale with minimum threshold
+      const logScale = 1.5 + Math.log10(hours * 100 + 1) / Math.log10(1000) * 3.5;
+      return Math.min(5, logScale);
+    }
   }
 
   return (
