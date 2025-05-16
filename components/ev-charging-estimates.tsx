@@ -37,14 +37,16 @@ const containerVariants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.05
+      staggerChildren: 0.12,
+      delayChildren: 0.2,
+      duration: 0.6
     }
   }
 }
 
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  show: { opacity: 1, y: 0, transition: { duration: 0.7 } }
 }
 
 const barVariants = {
@@ -52,7 +54,7 @@ const barVariants = {
   show: (duration: number) => ({
     width: "100%",
     transition: { 
-      duration: Math.min(3, duration / 5), // Cap animation at 3 seconds
+      duration: Math.min(5, duration / 3),
       ease: "easeInOut"
     }
   })
@@ -98,7 +100,7 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
           className="bg-muted p-3 rounded-md"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.8 }}
         >
           <div className="flex items-center gap-2">
             <Badge variant="outline">Off-Peak Hours</Badge>
@@ -116,7 +118,7 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
         >
           <Card>
             <CardContent className="pt-6">
@@ -150,7 +152,7 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
         >
           <Card>
             <CardContent className="pt-6">
@@ -223,7 +225,7 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
         className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+        transition={{ duration: 1.0, delay: 0.5 }}
       >
         <h3 className="text-lg font-medium mb-2">Vehicle Information</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
