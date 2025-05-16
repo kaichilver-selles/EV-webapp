@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Tariff, UsageAssumptions } from "@/lib/types"
 import { formatCurrency, formatTime } from "@/lib/utils"
 import { motion } from "framer-motion"
+import { useState, useEffect } from "react"
 
 interface EVChargingEstimatesProps {
   tariff: Tariff
@@ -20,6 +21,10 @@ const chargingScenarios = [
   { id: "full", name: "0% → 100% (full charge)", percentage: 1.0 },
   { id: "topup", name: "10% → 50% (short top-up)", percentage: 0.4 },
   { id: "journey", name: "50% → 100% (long journey prep)", percentage: 0.5 },
+  // New charging cost examples
+  { id: "emergency", name: "5% → 25% (emergency top-up)", percentage: 0.2 },
+  { id: "weekend", name: "30% → 90% (weekend trip)", percentage: 0.6 },
+  { id: "commute", name: "40% → 70% (daily commute)", percentage: 0.3 },
 ]
 
 // Define charging powers
@@ -60,9 +65,81 @@ const barVariants = {
   })
 }
 
+// Animation variants for price numbers
+const priceVariants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  show: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { 
+      type: "spring", 
+      stiffness: 100, 
+      damping: 10 
+    }
+  }
+}
+
+// Add this component above the EVChargingEstimates component
+interface AnimatedPriceProps {
+  value: number;
+  animate: boolean;
+}
+
+const AnimatedPrice = ({ value, animate }: AnimatedPriceProps) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  
+  useEffect(() => {
+    if (animate) {
+      // Reset to zero before animating
+      setDisplayValue(0);
+      
+      // Animate from 0 to the target value
+      const steps = 20;
+      const increment = value / steps;
+      let current = 0;
+      
+      const interval = setInterval(() => {
+        current += increment;
+        if (current >= value) {
+          clearInterval(interval);
+          setDisplayValue(value);
+        } else {
+          setDisplayValue(current);
+        }
+      }, 30);
+      
+      return () => clearInterval(interval);
+    }
+  }, [value, animate]);
+  
+  return (
+    <motion.span 
+      className="font-medium font-mono"
+      variants={priceVariants}
+      initial="hidden"
+      animate={animate ? "show" : "hidden"}
+    >
+      {formatCurrency(displayValue)}
+    </motion.span>
+  );
+};
+
 export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChargingEstimatesProps) {
+  // Animation trigger for price changes
+  const [animatePrices, setAnimatePrices] = useState(false);
+  
   // Use EV rate if available, otherwise use standard unit rate
   const rateForCharging = tariff.evRate !== null ? tariff.evRate : tariff.unitRate
+
+  // Re-trigger price animations when tariff changes
+  useEffect(() => {
+    setAnimatePrices(false);
+    // Small delay to ensure re-render
+    const timer = setTimeout(() => {
+      setAnimatePrices(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [tariff.id, rateForCharging]);
 
   const calculateChargeCost = (percentage: number) => {
     const kWh = BATTERY_CAPACITY * percentage
@@ -150,18 +227,40 @@ export default function EVChargingEstimates({ tariff, usageAssumptions }: EVChar
                 initial="hidden"
                 animate="show"
               >
-                {chargingScenarios.map((scenario) => (
-                  <motion.div 
-                    key={scenario.id} 
-                    className="flex justify-between items-center border-b pb-2"
-                    variants={itemVariants}
-                  >
-                    <span>{scenario.name}</span>
-                    <span className="font-medium font-mono">
-                      {formatCurrency(calculateChargeCost(scenario.percentage))}
-                    </span>
-                  </motion.div>
-                ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Common Scenarios</h4>
+                    {chargingScenarios.slice(0, 4).map((scenario) => (
+                      <motion.div 
+                        key={scenario.id} 
+                        className="flex justify-between items-center border-b pb-2 mb-2"
+                        variants={itemVariants}
+                      >
+                        <span>{scenario.name}</span>
+                        <AnimatedPrice 
+                          value={calculateChargeCost(scenario.percentage)}
+                          animate={animatePrices}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Additional Scenarios</h4>
+                    {chargingScenarios.slice(4).map((scenario) => (
+                      <motion.div 
+                        key={scenario.id} 
+                        className="flex justify-between items-center border-b pb-2 mb-2"
+                        variants={itemVariants}
+                      >
+                        <span>{scenario.name}</span>
+                        <AnimatedPrice 
+                          value={calculateChargeCost(scenario.percentage)}
+                          animate={animatePrices}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
               <div className="mt-4 text-sm text-muted-foreground">
                 Using {tariff.evRate !== null ? "special EV rate" : "standard rate"} of {rateForCharging}p/kWh
