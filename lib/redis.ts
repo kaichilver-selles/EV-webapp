@@ -12,8 +12,10 @@ const mockRedisClient = {
 };
 
 export async function getRedisClient() {
-  // Check if Redis URL is configured
-  if (!process.env.KV_URL) {
+  // Check if Redis URL is configured (use either KV_URL or REDIS_URL)
+  const redisUrl = process.env.KV_URL || process.env.REDIS_URL;
+  
+  if (!redisUrl) {
     console.warn('Redis URL not configured. Using mock implementation.');
     return mockRedisClient as unknown as ReturnType<typeof createClient>;
   }
@@ -22,7 +24,7 @@ export async function getRedisClient() {
     try {
       // Create a new client if none exists
       client = createClient({
-        url: process.env.KV_URL,
+        url: redisUrl,
       });
       
       // Log connection events

@@ -4,7 +4,8 @@ import { getRedisClient } from '@/lib/redis';
 export async function GET() {
   try {
     // Check if Redis URL is configured
-    const redisConfigured = !!process.env.KV_URL;
+    const redisUrl = process.env.KV_URL || process.env.REDIS_URL;
+    const redisConfigured = !!redisUrl;
     
     // Attempt to connect to Redis and perform a simple operation
     let redisConnected = false;
@@ -26,11 +27,12 @@ export async function GET() {
       redis: {
         configured: redisConfigured,
         connected: redisConnected,
-        url: process.env.KV_URL ? `${process.env.KV_URL.substring(0, 15)}...` : null,
+        url: redisUrl ? `${redisUrl.substring(0, 15)}...` : null,
         error: redisError
       },
       env_vars: {
         KV_URL: !!process.env.KV_URL,
+        REDIS_URL: !!process.env.REDIS_URL,
         KV_REST_API_URL: !!process.env.KV_REST_API_URL,
         KV_REST_API_TOKEN: !!process.env.KV_REST_API_TOKEN,
         KV_REST_API_READ_ONLY_TOKEN: !!process.env.KV_REST_API_READ_ONLY_TOKEN
